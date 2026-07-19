@@ -665,7 +665,8 @@ elif page == "✅ Évaluation":
         seuil = s_youden
         c1.metric("Seuil retenu", num_fr(seuil))
     else:
-        seuil = c2.slider("Seuil manuel", 0.02, 0.90, round(s_youden, 3), 0.005)
+        defaut_manuel = min(max(round(s_youden, 3), 0.02), 0.90)
+        seuil = c2.slider("Seuil manuel", 0.02, 0.90, defaut_manuel, 0.005)
     y_pred = (p_logit >= seuil).astype(int)
     cm = confusion_matrix(y_te, y_pred)
     vn, fp, fn, vp = cm.ravel()
