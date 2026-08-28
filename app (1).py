@@ -988,10 +988,10 @@ else:
             "cadre du Projet de Fin d'Année (PFA) — « Analyse et prédiction "
             "de l'attrition des clients (Customer Churn) », stage effectué au "
             "sein d'Al Barid Bank, agence Drissia (Tanger).<br><br>"
-            "<b>Auteur :</b> WALID [Nom] — Filière Ingénierie Financière et "
+            "<b>Auteur :</b> WALID BEN ABID — Filière Ingénierie Financière et "
             "Actuarielle, FST Errachidia (Université Moulay Ismaïl).<br>"
-            "<b>Encadrant pédagogique :</b> Pr. Lhoucine BEN HSSAIN.<br>"
-            "<b>Encadrant professionnel :</b> M. [Encadrant agence].</div>",
+            "<b>Encadrant pédagogique :</b> M. SIDI AMMI.<br>"
+            "<b>Encadrant professionnel :</b> M. KAIDI MY ISMAIL.</div>",
             unsafe_allow_html=True)
         st.markdown(
             "<div class='carte-jaune'><b>Confidentialité.</b> Aucune donnée "
