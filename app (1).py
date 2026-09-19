@@ -111,14 +111,16 @@ def load_background_image(nom_fichier: str = FOND_FICHIER) -> str:
 FOND_B64 = load_background_image()
 
 if FOND_B64:
+    # Voile volontairement léger : il protège la lisibilité des rares textes
+    # posés hors carte sans masquer la photographie.
     _COUCHE_FOND = (
-        "linear-gradient(180deg, rgba(36,28,23,0.62) 0%, "
-        "rgba(36,28,23,0.50) 45%, rgba(36,28,23,0.68) 100%), "
+        "linear-gradient(180deg, rgba(52,41,33,0.20) 0%, "
+        "rgba(52,41,33,0.12) 45%, rgba(52,41,33,0.30) 100%), "
         f"url('data:image/jpeg;base64,{FOND_B64}')"
     )
 else:
-    _COUCHE_FOND = ("linear-gradient(140deg, #3A2F29 0%, #4D3F37 45%, "
-                    "#6B5A4E 100%)")
+    _COUCHE_FOND = ("linear-gradient(140deg, #8C7458 0%, #A38A6C 45%, "
+                    "#BFA88A 100%)")
 
 
 # ============================================================================
@@ -126,18 +128,27 @@ else:
 # ============================================================================
 CSS = f"""
 <style>
+/* ===========================================================================
+   Palette de verre bronze — échantillonnée sur la référence fournie :
+   cœur #C3AA8C (195,170,140), haut #C9AF96, bas #B69B7E.
+   La zone de résultats reçoit cette teinte ; la barre latérale reprend la
+   même famille en plus sombre pour distinguer les deux plans.
+   =========================================================================== */
 :root {{
     --abb-jaune: {JAUNE};
     --abb-jaune-fonce: {JAUNE_FONCE};
-    --abb-brun: {BRUN};
+    --abb-brun: #3A2F29;
     --abb-brun-fonce: {BRUN_FONCE};
-    --abb-txt: {TXT};
-    --abb-mut: {MUT};
-    --glass: rgba(255, 255, 255, 0.74);
-    --glass-fort: rgba(255, 255, 255, 0.92);
-    --glass-doux: rgba(255, 255, 255, 0.58);
-    --glass-bord: rgba(255, 255, 255, 0.55);
-    --glass-ombre: 0 8px 28px rgba(35, 27, 22, 0.14);
+    --abb-txt: #2B2320;
+    --abb-mut: #3F3226;
+
+    /* verre bronze */
+    --verre-feuille: rgba(201, 178, 149, 0.36);   /* grande surface : laisse voir la photo */
+    --verre: rgba(197, 172, 142, 0.78);           /* cartes de résultats */
+    --verre-fort: rgba(214, 196, 172, 0.92);      /* tableaux et texte dense */
+    --verre-bord: rgba(255, 248, 235, 0.46);
+    --verre-ombre: 0 8px 26px rgba(48, 36, 28, 0.18);
+
     --rayon: 18px;
     --police: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
 }}
@@ -154,13 +165,15 @@ CSS = f"""
 [data-testid="stToolbar"] {{ right: 1rem; }}
 
 /* ------------------------------------------------- SURFACE PRINCIPALE -- */
-[data-testid="stAppViewContainer"] .main .block-container {{
-    background: var(--glass-doux);
-    -webkit-backdrop-filter: blur(9px) saturate(115%);
-    backdrop-filter: blur(9px) saturate(115%);
-    border: 1px solid var(--glass-bord);
+[data-testid="stMainBlockContainer"],
+[data-testid="stMain"] .block-container,
+.main .block-container {{
+    background: var(--verre-feuille);
+    -webkit-backdrop-filter: blur(6px) saturate(112%);
+    backdrop-filter: blur(6px) saturate(112%);
+    border: 1px solid var(--verre-bord);
     border-radius: 24px;
-    box-shadow: 0 14px 44px rgba(28, 21, 17, 0.20);
+    box-shadow: 0 12px 38px rgba(38, 29, 22, 0.20);
     padding: 2.1rem 2.4rem 3rem 2.4rem;
     margin-top: 1.1rem;
     margin-bottom: 2rem;
@@ -172,26 +185,31 @@ html, body, [class*="css"], .stMarkdown, .stApp {{
     font-family: var(--police);
     color: var(--abb-txt);
 }}
+[data-testid="stMain"] h1, [data-testid="stMain"] h2,
+[data-testid="stMain"] h3, [data-testid="stMain"] h4,
 .main h1, .main h2, .main h3, .main h4 {{
     font-family: var(--police);
     color: var(--abb-brun);
     letter-spacing: -0.01em;
 }}
-.main h1 {{ font-size: 1.62rem; font-weight: 700; margin-bottom: .2rem; }}
-.main h2 {{ font-size: 1.24rem; font-weight: 650; margin-top: 1.5rem; }}
-.main h3 {{ font-size: 1.05rem; font-weight: 600; margin-top: 1.1rem; }}
-.main p, .main li {{ font-size: 0.945rem; line-height: 1.62; }}
-.main .stCaption, .main small {{ color: var(--abb-mut); }}
-hr {{ border-color: rgba(77, 63, 55, 0.16); }}
+[data-testid="stMain"] h1, .main h1 {{ font-size: 1.62rem; font-weight: 700; margin-bottom: .2rem; }}
+[data-testid="stMain"] h2, .main h2 {{ font-size: 1.24rem; font-weight: 650; margin-top: 1.5rem; }}
+[data-testid="stMain"] h3, .main h3 {{ font-size: 1.05rem; font-weight: 600; margin-top: 1.1rem; }}
+[data-testid="stMain"] p, [data-testid="stMain"] li,
+.main p, .main li {{ font-size: 0.945rem; line-height: 1.62; color: var(--abb-txt); }}
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {{
+    color: var(--abb-mut) !important;
+}}
+hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 
 /* ------------------------------------------------------ EN-TÊTE PAGE -- */
 .page-header {{
-    background: var(--glass);
-    -webkit-backdrop-filter: blur(16px) saturate(120%);
-    backdrop-filter: blur(16px) saturate(120%);
-    border: 1px solid var(--glass-bord);
+    background: var(--verre);
+    -webkit-backdrop-filter: blur(15px) saturate(118%);
+    backdrop-filter: blur(15px) saturate(118%);
+    border: 1px solid var(--verre-bord);
     border-radius: var(--rayon);
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     padding: 20px 26px 18px 26px;
     margin: 0 0 22px 0;
 }}
@@ -210,34 +228,31 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
 
 /* ------------------------------------------------------------ CARTES -- */
 .glass-card {{
-    background: var(--glass);
-    -webkit-backdrop-filter: blur(14px) saturate(118%);
-    backdrop-filter: blur(14px) saturate(118%);
-    border: 1px solid var(--glass-bord);
+    background: var(--verre);
+    -webkit-backdrop-filter: blur(14px) saturate(116%);
+    backdrop-filter: blur(14px) saturate(116%);
+    border: 1px solid var(--verre-bord);
     border-radius: var(--rayon);
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     padding: 18px 22px;
     margin-bottom: 14px;
     color: var(--abb-txt);
     font-size: 0.94rem;
     line-height: 1.6;
 }}
-.glass-card.solid {{
-    background: var(--glass-fort);
-}}
+.glass-card.solid {{ background: var(--verre-fort); }}
 .glass-card .gc-title {{
     font-weight: 650; color: var(--abb-brun); font-size: 0.99rem;
     margin-bottom: 6px;
 }}
 
-/* étapes du pipeline (page d'accueil) */
 .step-card {{
-    background: var(--glass);
+    background: var(--verre);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
-    border: 1px solid var(--glass-bord);
+    border: 1px solid var(--verre-bord);
     border-radius: var(--rayon);
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     padding: 17px 18px 16px 18px;
     min-height: 152px;
     position: relative;
@@ -245,11 +260,11 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
 }}
 .step-card:hover {{
     transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(35, 27, 22, 0.19);
+    box-shadow: 0 12px 30px rgba(38, 29, 22, 0.24);
 }}
 .step-card .sc-num {{
     font-size: 0.73rem; font-weight: 700; letter-spacing: .1em;
-    color: var(--abb-jaune-fonce); text-transform: uppercase;
+    color: #8A6B00; text-transform: uppercase;
 }}
 .step-card .sc-title {{
     font-weight: 650; color: var(--abb-brun); font-size: 1rem;
@@ -263,12 +278,12 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
 
 /* ---------------------------------------------------------- KPI CARD -- */
 .kpi {{
-    background: var(--glass);
-    -webkit-backdrop-filter: blur(14px) saturate(118%);
-    backdrop-filter: blur(14px) saturate(118%);
-    border: 1px solid var(--glass-bord);
+    background: var(--verre);
+    -webkit-backdrop-filter: blur(14px) saturate(116%);
+    backdrop-filter: blur(14px) saturate(116%);
+    border: 1px solid var(--verre-bord);
     border-radius: var(--rayon);
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     padding: 18px 18px 16px 18px;
     min-height: 108px;
     display: flex; flex-direction: column; justify-content: center;
@@ -278,8 +293,7 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
     line-height: 1.12; letter-spacing: -0.02em;
 }}
 .kpi .lab {{
-    font-size: 0.79rem; color: var(--abb-mut); margin-top: 6px;
-    line-height: 1.35;
+    font-size: 0.79rem; color: var(--abb-mut); margin-top: 6px; line-height: 1.35;
 }}
 .kpi .accent {{
     width: 24px; height: 2px; background: var(--abb-jaune);
@@ -288,27 +302,25 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
 
 /* --------------------------------------------------- INTERPRÉTATIONS -- */
 .insight-card {{
-    background: rgba(255, 252, 243, 0.80);
+    background: rgba(236, 219, 190, 0.78);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.52);
+    border: 1px solid rgba(255, 250, 240, 0.50);
     border-left: 3px solid var(--abb-jaune);
     border-radius: 14px;
     padding: 14px 18px;
     margin: 10px 0 18px 0;
-    font-size: 0.895rem;
-    line-height: 1.6;
-    color: var(--abb-txt);
+    font-size: 0.895rem; line-height: 1.6; color: var(--abb-txt);
 }}
 .insight-card .ic-label {{
     display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: .09em;
-    text-transform: uppercase; color: var(--abb-jaune-fonce); margin-bottom: 5px;
+    text-transform: uppercase; color: #8A6B00; margin-bottom: 5px;
 }}
 .warn-card {{
-    background: rgba(255, 244, 242, 0.84);
+    background: rgba(240, 216, 206, 0.82);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 250, 240, 0.48);
     border-left: 3px solid {ROUGE};
     border-radius: 14px;
     padding: 14px 18px;
@@ -328,14 +340,15 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
 }}
 
 /* ---------------------------------------------------------- SIDEBAR -- */
+/* même famille bronze, volontairement plus sombre que la zone de résultats */
 [data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, rgba(48, 39, 33, 0.90) 0%,
-                rgba(58, 47, 41, 0.86) 100%);
-    -webkit-backdrop-filter: blur(18px) saturate(120%);
-    backdrop-filter: blur(18px) saturate(120%);
-    border-right: 1px solid rgba(255, 255, 255, 0.10);
+    background: linear-gradient(180deg, rgba(104, 85, 66, 0.86) 0%,
+                rgba(88, 71, 55, 0.88) 100%);
+    -webkit-backdrop-filter: blur(16px) saturate(118%);
+    backdrop-filter: blur(16px) saturate(118%);
+    border-right: 1px solid rgba(255, 248, 235, 0.16);
 }}
-[data-testid="stSidebar"] * {{ color: #EFE7E0; }}
+[data-testid="stSidebar"] * {{ color: #F6EFE5; }}
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {{ padding-top: .6rem; }}
 
 .sb-logo {{
@@ -343,7 +356,7 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
     border-radius: 14px;
     padding: 13px 10px;
     text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.20);
     margin-bottom: 13px;
 }}
 .sb-logo img {{ width: 142px; max-width: 100%; }}
@@ -352,20 +365,16 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
     color: #FFFFFF; letter-spacing: -0.01em;
 }}
 .sb-sub {{
-    text-align: center; font-size: 0.745rem; color: rgba(239, 231, 224, 0.62);
+    text-align: center; font-size: 0.745rem; color: rgba(246, 239, 229, 0.66);
     letter-spacing: .05em; text-transform: uppercase; margin-top: 3px;
 }}
-.sb-sep {{
-    height: 1px; background: rgba(255, 255, 255, 0.13);
-    margin: 16px 0 12px 0;
-}}
+.sb-sep {{ height: 1px; background: rgba(255, 248, 235, 0.16); margin: 16px 0 12px 0; }}
 .sb-legend {{
     font-size: 0.665rem; font-weight: 700; letter-spacing: .12em;
-    text-transform: uppercase; color: rgba(239, 231, 224, 0.45);
+    text-transform: uppercase; color: rgba(246, 239, 229, 0.50);
     margin: 0 0 9px 2px;
 }}
 
-/* navigation : radio transformé en menu */
 [data-testid="stSidebar"] div[role="radiogroup"] {{ gap: 2px; }}
 [data-testid="stSidebar"] div[role="radiogroup"] label {{
     display: flex; align-items: center;
@@ -376,14 +385,14 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
     transition: background .16s ease, border-color .16s ease, padding .16s ease;
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] label:hover {{
-    background: rgba(255, 255, 255, 0.07);
+    background: rgba(255, 248, 235, 0.09);
     border-left-color: rgba(245, 184, 0, 0.45);
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] label p {{
-    font-size: 0.88rem; margin: 0; color: rgba(239, 231, 224, 0.86);
+    font-size: 0.88rem; margin: 0; color: rgba(246, 239, 229, 0.88);
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {{
-    background: rgba(255, 255, 255, 0.11);
+    background: rgba(255, 248, 235, 0.14);
     border-left-color: var(--abb-jaune);
     padding-left: 14px;
 }}
@@ -394,38 +403,28 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
     display: none;
 }}
 
-/* indicateurs d'état — points CSS, aucun emoji */
 .state-row {{
     display: flex; align-items: center; justify-content: space-between;
     padding: 6px 10px; border-radius: 9px; margin-bottom: 3px;
-    background: rgba(255, 255, 255, 0.045);
+    background: rgba(255, 248, 235, 0.06);
 }}
-.state-row .sr-lab {{ font-size: 0.79rem; color: rgba(239, 231, 224, 0.80); }}
+.state-row .sr-lab {{ font-size: 0.79rem; color: rgba(246, 239, 229, 0.82); }}
 .state-row .sr-val {{
     font-size: 0.715rem; letter-spacing: .04em; display: flex;
     align-items: center; gap: 7px;
 }}
 .dot {{ width: 7px; height: 7px; border-radius: 50%; display: inline-block; }}
-.dot-on {{
-    background: #5FC98A; box-shadow: 0 0 0 3px rgba(95, 201, 138, 0.16);
-}}
-.dot-off {{
-    background: transparent; border: 1.5px solid rgba(239, 231, 224, 0.42);
-}}
-.sr-on {{ color: #8FD9AE; }}
-.sr-off {{ color: rgba(239, 231, 224, 0.48); }}
-
-.sb-foot {{
-    font-size: 0.71rem; line-height: 1.55;
-    color: rgba(239, 231, 224, 0.50); padding: 0 2px;
-}}
+.dot-on {{ background: #7CD8A2; box-shadow: 0 0 0 3px rgba(124, 216, 162, 0.18); }}
+.dot-off {{ background: transparent; border: 1.5px solid rgba(246, 239, 229, 0.45); }}
+.sr-on {{ color: #A6E6C1; }}
+.sr-off {{ color: rgba(246, 239, 229, 0.52); }}
+.sb-foot {{ font-size: 0.71rem; line-height: 1.55; color: rgba(246, 239, 229, 0.54); padding: 0 2px; }}
 
 /* ----------------------------------------------------------- BOUTONS -- */
 .stButton > button {{
     background: var(--abb-jaune);
     color: {BRUN_FONCE};
-    font-weight: 600;
-    font-size: 0.895rem;
+    font-weight: 600; font-size: 0.895rem;
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 11px;
     padding: 0.52rem 1.15rem;
@@ -433,198 +432,195 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
     transition: background .16s ease, transform .12s ease, box-shadow .16s ease;
 }}
 .stButton > button:hover {{
-    background: var(--abb-jaune-fonce);
-    color: {BRUN_FONCE};
+    background: var(--abb-jaune-fonce); color: {BRUN_FONCE};
     border-color: rgba(0, 0, 0, 0.09);
     box-shadow: 0 4px 14px rgba(217, 162, 0, 0.32);
     transform: translateY(-1px);
 }}
 .stButton > button:focus {{
-    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.32) !important;
-    color: {BRUN_FONCE};
+    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.32) !important; color: {BRUN_FONCE};
 }}
 .stButton > button:active {{ transform: translateY(0); }}
 
 .stDownloadButton > button {{
-    background: rgba(255, 255, 255, 0.70);
+    background: rgba(255, 252, 246, 0.80);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     color: var(--abb-brun);
-    font-weight: 600;
-    font-size: 0.87rem;
-    border: 1px solid rgba(77, 63, 55, 0.20);
+    font-weight: 600; font-size: 0.87rem;
+    border: 1px solid rgba(58, 47, 41, 0.24);
     border-radius: 11px;
     padding: 0.5rem 1.05rem;
     box-shadow: none;
     transition: background .16s ease, border-color .16s ease;
 }}
 .stDownloadButton > button:hover {{
-    background: rgba(255, 255, 255, 0.92);
-    border-color: var(--abb-jaune);
-    color: var(--abb-brun);
+    background: rgba(255, 253, 249, 0.95);
+    border-color: var(--abb-jaune); color: var(--abb-brun);
 }}
 .stDownloadButton > button:focus {{
-    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.28) !important;
-    color: var(--abb-brun);
+    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.28) !important; color: var(--abb-brun);
 }}
 
 /* ------------------------------------------------ CHAMPS & CONTRÔLES -- */
-[data-testid="stSidebar"] .stSelectbox label,
-.main .stSelectbox label, .main .stMultiSelect label,
-.main .stNumberInput label, .main .stSlider label,
-.main .stTextInput label, .main .stRadio label > div,
-.main .stFileUploader label {{
-    font-size: 0.855rem; font-weight: 550; color: var(--abb-brun);
+[data-testid="stMain"] label, .main label,
+[data-testid="stWidgetLabel"] label, [data-testid="stWidgetLabel"] p {{
+    font-size: 0.855rem; font-weight: 550; color: var(--abb-brun) !important;
 }}
-.main [data-baseweb="select"] > div,
-.main .stNumberInput input,
-.main .stTextInput input {{
-    background: rgba(255, 255, 255, 0.82);
-    border: 1px solid rgba(77, 63, 55, 0.18);
+[data-testid="stSidebar"] label p {{ color: #F6EFE5 !important; }}
+
+[data-testid="stMain"] [data-baseweb="select"] > div,
+[data-testid="stMain"] input, .main [data-baseweb="select"] > div, .main input {{
+    background: rgba(255, 252, 246, 0.86);
+    border: 1px solid rgba(58, 47, 41, 0.22);
     border-radius: 10px;
     color: var(--abb-txt);
 }}
-.main [data-baseweb="select"] > div:focus-within,
-.main .stNumberInput input:focus,
-.main .stTextInput input:focus {{
+[data-testid="stMain"] [data-baseweb="select"] > div:focus-within,
+[data-testid="stMain"] input:focus {{
     border-color: var(--abb-jaune);
-    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.18);
+    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.20);
 }}
-.main [data-baseweb="tag"] {{
-    background: {JAUNE_CLAIR} !important;
+/* jetons du multiselect — étiquette jaune Al Barid, jamais la couleur par défaut */
+[data-baseweb="tag"] {{
+    background-color: {JAUNE_CLAIR} !important;
     color: {BRUN} !important;
-    border: 1px solid rgba(245, 184, 0, 0.45);
-    border-radius: 8px;
+    border: 1px solid rgba(245, 184, 0, 0.55) !important;
+    border-radius: 8px !important;
 }}
-.main [data-testid="stFileUploaderDropzone"] {{
-    background: rgba(255, 255, 255, 0.72);
-    border: 1.5px dashed rgba(77, 63, 55, 0.28);
+[data-baseweb="tag"] span, [data-baseweb="tag"] svg {{ color: {BRUN} !important; fill: {BRUN} !important; }}
+
+[data-testid="stFileUploaderDropzone"] {{
+    background: rgba(255, 252, 246, 0.78);
+    border: 1.5px dashed rgba(58, 47, 41, 0.30);
     border-radius: 14px;
 }}
-.main [data-testid="stFileUploaderDropzone"]:hover {{
-    border-color: var(--abb-jaune);
-    background: rgba(255, 255, 255, 0.86);
+[data-testid="stFileUploaderDropzone"]:hover {{
+    border-color: var(--abb-jaune); background: rgba(255, 253, 249, 0.90);
 }}
-.main [data-testid="stExpander"] {{
-    background: var(--glass);
+[data-testid="stExpander"] {{
+    background: var(--verre);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-bord);
+    border: 1px solid var(--verre-bord);
     border-radius: 14px;
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     overflow: hidden;
 }}
-.main [data-testid="stExpander"] summary {{
-    font-weight: 600; color: var(--abb-brun); font-size: 0.9rem;
-}}
-.main [data-testid="stExpander"] summary:hover {{ color: var(--abb-jaune-fonce); }}
+[data-testid="stExpander"] summary {{ font-weight: 600; color: var(--abb-brun); font-size: 0.9rem; }}
+[data-testid="stExpander"] summary:hover {{ color: #8A6B00; }}
 
-/* radio horizontal du contenu principal */
-.main div[role="radiogroup"] label {{
-    background: rgba(255, 255, 255, 0.60);
-    border: 1px solid rgba(77, 63, 55, 0.14);
+[data-testid="stMain"] div[role="radiogroup"] label, .main div[role="radiogroup"] label {{
+    background: rgba(255, 252, 246, 0.66);
+    border: 1px solid rgba(58, 47, 41, 0.18);
     border-radius: 10px;
     padding: 6px 13px;
     margin-right: 7px;
     transition: border-color .15s ease, background .15s ease;
 }}
-.main div[role="radiogroup"] label:hover {{
-    border-color: rgba(245, 184, 0, 0.55);
-    background: rgba(255, 255, 255, 0.80);
+[data-testid="stMain"] div[role="radiogroup"] label:hover {{
+    border-color: rgba(245, 184, 0, 0.60); background: rgba(255, 253, 249, 0.86);
 }}
-.main div[role="radiogroup"] label:has(input:checked) {{
-    border-color: var(--abb-jaune);
-    background: {JAUNE_CLAIR};
+[data-testid="stMain"] div[role="radiogroup"] label:has(input:checked) {{
+    border-color: var(--abb-jaune); background: {JAUNE_CLAIR};
 }}
 
-/* curseurs */
-.main [data-testid="stSlider"] [role="slider"] {{
+/* curseurs — piste et poignée à la charte, au lieu de la couleur par défaut */
+[data-testid="stSlider"] [role="slider"] {{
     background-color: var(--abb-jaune) !important;
-    border-color: #FFFFFF !important;
+    border: 2px solid #FFFFFF !important;
+    box-shadow: 0 1px 5px rgba(48, 36, 28, 0.28) !important;
 }}
-.main [data-testid="stTickBar"] {{ background: transparent; }}
+[data-testid="stSlider"] [data-baseweb="slider"] div[style*="rgb(255, 75, 75)"],
+[data-testid="stSlider"] [data-baseweb="slider"] div[style*="background: rgb"] {{
+    background: var(--abb-jaune) !important;
+}}
+[data-testid="stTickBar"] {{ background: transparent; }}
+[data-testid="stThumbValue"] {{ color: var(--abb-brun) !important; font-weight: 650; }}
 
-/* onglets */
-.main [data-baseweb="tab-list"] {{
-    gap: 5px; background: transparent; border-bottom: 1px solid rgba(77, 63, 55, 0.14);
+/* cases à cocher */
+[data-baseweb="checkbox"] [data-testid="stCheckbox"] > label > span,
+[data-testid="stCheckbox"] input:checked + div {{
+    background-color: var(--abb-jaune) !important;
+    border-color: var(--abb-jaune) !important;
 }}
-.main [data-baseweb="tab"] {{
-    background: rgba(255, 255, 255, 0.50);
+
+[data-baseweb="tab-list"] {{
+    gap: 5px; background: transparent; border-bottom: 1px solid rgba(58, 47, 41, 0.18);
+}}
+[data-testid="stMain"] [data-baseweb="tab"] {{
+    background: rgba(255, 252, 246, 0.55);
     border-radius: 11px 11px 0 0;
     padding: 9px 17px;
     font-size: 0.885rem; font-weight: 550;
     color: var(--abb-mut);
 }}
-.main [data-baseweb="tab"][aria-selected="true"] {{
-    background: var(--glass-fort);
+[data-testid="stMain"] [data-baseweb="tab"][aria-selected="true"] {{
+    background: var(--verre-fort);
     color: var(--abb-brun);
     box-shadow: inset 0 -2px 0 0 var(--abb-jaune);
 }}
 
 /* ------------------------------------------------------- DATAFRAMES -- */
-.main [data-testid="stDataFrame"],
-.main [data-testid="stTable"] {{
-    background: var(--glass-fort);
-    border: 1px solid var(--glass-bord);
+[data-testid="stDataFrame"], [data-testid="stTable"] {{
+    background: var(--verre-fort);
+    border: 1px solid var(--verre-bord);
     border-radius: 14px;
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     padding: 5px;
     overflow: hidden;
 }}
-.main [data-testid="stDataFrame"] ::-webkit-scrollbar {{ width: 8px; height: 8px; }}
-.main [data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {{
-    background: rgba(77, 63, 55, 0.26); border-radius: 8px;
+[data-testid="stDataFrame"] ::-webkit-scrollbar {{ width: 8px; height: 8px; }}
+[data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {{
+    background: rgba(58, 47, 41, 0.30); border-radius: 8px;
 }}
-.main [data-testid="stDataFrame"] ::-webkit-scrollbar-track {{ background: transparent; }}
+[data-testid="stDataFrame"] ::-webkit-scrollbar-track {{ background: transparent; }}
 
 /* --------------------------------------------------------- MÉTRIQUES -- */
-.main [data-testid="stMetric"] {{
-    background: var(--glass);
+[data-testid="stMetric"] {{
+    background: var(--verre);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-bord);
+    border: 1px solid var(--verre-bord);
     border-radius: 14px;
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     padding: 14px 18px;
 }}
-.main [data-testid="stMetricLabel"] p {{
-    font-size: 0.8rem; color: var(--abb-mut);
-}}
-.main [data-testid="stMetricValue"] {{
-    color: var(--abb-brun); font-weight: 700;
-}}
+[data-testid="stMetricLabel"] p {{ font-size: 0.8rem; color: var(--abb-mut); }}
+[data-testid="stMetricValue"] {{ color: var(--abb-brun); font-weight: 700; }}
 
 /* ----------------------------------------------------------- ALERTES -- */
-.main [data-testid="stAlert"] {{
+[data-testid="stAlert"] {{
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border-radius: 14px;
-    border: 1px solid var(--glass-bord);
-    box-shadow: var(--glass-ombre);
+    border: 1px solid var(--verre-bord);
+    box-shadow: var(--verre-ombre);
     font-size: 0.9rem;
 }}
+[data-testid="stAlert"] p {{ color: var(--abb-txt); }}
 
 /* --------------------------------------------------------- GRAPHIQUES -- */
-.main [data-testid="stPlotlyChart"] {{
-    background: var(--glass);
-    -webkit-backdrop-filter: blur(13px) saturate(115%);
-    backdrop-filter: blur(13px) saturate(115%);
-    border: 1px solid var(--glass-bord);
+[data-testid="stPlotlyChart"] {{
+    background: var(--verre);
+    -webkit-backdrop-filter: blur(13px) saturate(114%);
+    backdrop-filter: blur(13px) saturate(114%);
+    border: 1px solid var(--verre-bord);
     border-radius: var(--rayon);
-    box-shadow: var(--glass-ombre);
+    box-shadow: var(--verre-ombre);
     padding: 9px 11px 4px 11px;
     margin-bottom: 8px;
 }}
-.main [data-testid="stPlotlyChart"] .modebar {{ background: transparent !important; }}
+[data-testid="stPlotlyChart"] .modebar {{ background: transparent !important; }}
 
 /* ---------------------------------------------------------- RESPONSIF -- */
 @media (max-width: 1400px) {{
     .kpi .val {{ font-size: 1.58rem; }}
 }}
 @media (max-width: 1100px) {{
-    [data-testid="stAppViewContainer"] .main .block-container {{
-        padding: 1.5rem 1.4rem 2.2rem 1.4rem;
-        border-radius: 18px;
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stMain"] .block-container, .main .block-container {{
+        padding: 1.5rem 1.4rem 2.2rem 1.4rem; border-radius: 18px;
     }}
     .kpi {{ min-height: 96px; }}
     .kpi .val {{ font-size: 1.42rem; }}
@@ -632,13 +628,14 @@ hr {{ border-color: rgba(77, 63, 55, 0.16); }}
 }}
 @media (max-width: 760px) {{
     [data-testid="stAppViewContainer"] {{ background-attachment: scroll; }}
-    [data-testid="stAppViewContainer"] .main .block-container {{
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stMain"] .block-container, .main .block-container {{
         padding: 1.1rem 0.95rem 1.8rem 0.95rem;
         margin-top: .5rem; border-radius: 14px;
     }}
     .page-header {{ padding: 15px 17px 14px 17px; }}
     .page-header .ph-title {{ font-size: 1.16rem; }}
-    .main h1 {{ font-size: 1.3rem; }}
+    [data-testid="stMain"] h1, .main h1 {{ font-size: 1.3rem; }}
     .kpi .val {{ font-size: 1.3rem; }}
     .kpi .lab {{ font-size: 0.73rem; }}
     .glass-card {{ padding: 14px 15px; }}
@@ -658,15 +655,15 @@ PLOTLY_LAYOUT = dict(
     margin=dict(l=46, r=22, t=54, b=44),
     title=dict(font=dict(size=14.5, color=BRUN, family="Inter, system-ui, Arial"),
                x=0.01, xanchor="left"),
-    xaxis=dict(gridcolor="rgba(77,63,55,0.10)", zerolinecolor="rgba(77,63,55,0.18)",
-               linecolor="rgba(77,63,55,0.22)", tickfont=dict(size=11, color=MUT),
-               title=dict(font=dict(size=11.5, color=MUT))),
-    yaxis=dict(gridcolor="rgba(77,63,55,0.10)", zerolinecolor="rgba(77,63,55,0.18)",
-               linecolor="rgba(77,63,55,0.22)", tickfont=dict(size=11, color=MUT),
-               title=dict(font=dict(size=11.5, color=MUT))),
-    legend=dict(bgcolor="rgba(255,255,255,0.55)", bordercolor="rgba(77,63,55,0.14)",
+    xaxis=dict(gridcolor="rgba(58,47,41,0.16)", zerolinecolor="rgba(58,47,41,0.26)",
+               linecolor="rgba(58,47,41,0.30)", tickfont=dict(size=11, color="#4A3C31"),
+               title=dict(font=dict(size=11.5, color="#4A3C31"))),
+    yaxis=dict(gridcolor="rgba(58,47,41,0.16)", zerolinecolor="rgba(58,47,41,0.26)",
+               linecolor="rgba(58,47,41,0.30)", tickfont=dict(size=11, color="#4A3C31"),
+               title=dict(font=dict(size=11.5, color="#4A3C31"))),
+    legend=dict(bgcolor="rgba(250,243,232,0.78)", bordercolor="rgba(58,47,41,0.20)",
                 borderwidth=1, font=dict(size=11, color=TXT)),
-    hoverlabel=dict(bgcolor="rgba(255,255,255,0.96)", bordercolor=JAUNE,
+    hoverlabel=dict(bgcolor="rgba(252,247,238,0.97)", bordercolor=JAUNE,
                     font=dict(color=TXT, size=11.5, family="Inter, Arial")),
 )
 
@@ -1510,8 +1507,8 @@ elif page == "Évaluation":
                        xaxis=dict(title=dict(text="1 − spécificité")),
                        yaxis=dict(title=dict(text="Sensibilité")),
                        legend=dict(x=0.40, y=0.06,
-                                   bgcolor="rgba(255,255,255,0.72)",
-                                   bordercolor="rgba(77,63,55,0.14)",
+                                   bgcolor="rgba(250,243,232,0.86)",
+                                   bordercolor="rgba(58,47,41,0.20)",
                                    borderwidth=1, font=dict(size=11, color=TXT)))
 
     c1, c2 = st.columns([1.35, 1])
