@@ -119,8 +119,8 @@ if FOND_B64:
         f"url('data:image/jpeg;base64,{FOND_B64}')"
     )
 else:
-    _COUCHE_FOND = ("linear-gradient(140deg, #8C7458 0%, #A38A6C 45%, "
-                    "#BFA88A 100%)")
+    _COUCHE_FOND = ("linear-gradient(140deg, #AD7A4F 0%, #C89A72 50%, "
+                    "#FBE0CF 100%)")
 
 
 # ============================================================================
@@ -142,11 +142,13 @@ CSS = f"""
     --abb-txt: #2B2320;
     --abb-mut: #3F3226;
 
-    /* verre bronze */
-    --verre-feuille: rgba(201, 178, 149, 0.36);   /* grande surface : laisse voir la photo */
-    --verre: rgba(197, 172, 142, 0.78);           /* cartes de résultats */
-    --verre-fort: rgba(214, 196, 172, 0.92);      /* tableaux et texte dense */
-    --verre-bord: rgba(255, 248, 235, 0.46);
+    /* les deux couleurs de référence, appliquées telles quelles */
+    --creme: #FBE0CF;                             /* zone qui affiche les résultats */
+    --brun: #AD7A4F;                              /* barre latérale */
+    --verre-feuille: rgba(251, 224, 207, 0.34);   /* grande surface : laisse voir la photo */
+    --verre: #FBE0CF;                             /* cartes de résultats */
+    --verre-fort: #FBE0CF;                        /* tableaux et texte dense */
+    --verre-bord: rgba(173, 122, 79, 0.28);
     --verre-ombre: 0 8px 26px rgba(48, 36, 28, 0.18);
 
     --rayon: 18px;
@@ -302,7 +304,7 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 
 /* --------------------------------------------------- INTERPRÉTATIONS -- */
 .insight-card {{
-    background: rgba(236, 219, 190, 0.78);
+    background: var(--creme);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 250, 240, 0.50);
@@ -317,7 +319,7 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
     text-transform: uppercase; color: #8A6B00; margin-bottom: 5px;
 }}
 .warn-card {{
-    background: rgba(240, 216, 206, 0.82);
+    background: var(--creme);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 250, 240, 0.48);
@@ -342,13 +344,10 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 /* ---------------------------------------------------------- SIDEBAR -- */
 /* même famille bronze, volontairement plus sombre que la zone de résultats */
 [data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, rgba(104, 85, 66, 0.86) 0%,
-                rgba(88, 71, 55, 0.88) 100%);
-    -webkit-backdrop-filter: blur(16px) saturate(118%);
-    backdrop-filter: blur(16px) saturate(118%);
-    border-right: 1px solid rgba(255, 248, 235, 0.16);
+    background: var(--brun);
+    border-right: 1px solid rgba(43, 35, 32, 0.20);
 }}
-[data-testid="stSidebar"] * {{ color: #F6EFE5; }}
+[data-testid="stSidebar"] * {{ color: #1C1611; }}
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {{ padding-top: .6rem; }}
 
 .sb-logo {{
@@ -356,22 +355,22 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
     border-radius: 14px;
     padding: 13px 10px;
     text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.20);
+    box-shadow: 0 4px 14px rgba(43, 35, 32, 0.24);
     margin-bottom: 13px;
 }}
 .sb-logo img {{ width: 142px; max-width: 100%; }}
 .sb-title {{
     text-align: center; font-weight: 700; font-size: 1.03rem;
-    color: #FFFFFF; letter-spacing: -0.01em;
+    color: #1C1611; letter-spacing: -0.01em;
 }}
 .sb-sub {{
-    text-align: center; font-size: 0.745rem; color: rgba(246, 239, 229, 0.66);
+    text-align: center; font-size: 0.745rem; color: rgba(28, 22, 17, 0.72);
     letter-spacing: .05em; text-transform: uppercase; margin-top: 3px;
 }}
-.sb-sep {{ height: 1px; background: rgba(255, 248, 235, 0.16); margin: 16px 0 12px 0; }}
+.sb-sep {{ height: 1px; background: rgba(28, 22, 17, 0.20); margin: 16px 0 12px 0; }}
 .sb-legend {{
     font-size: 0.665rem; font-weight: 700; letter-spacing: .12em;
-    text-transform: uppercase; color: rgba(246, 239, 229, 0.50);
+    text-transform: uppercase; color: rgba(28, 22, 17, 0.62);
     margin: 0 0 9px 2px;
 }}
 
@@ -385,19 +384,19 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
     transition: background .16s ease, border-color .16s ease, padding .16s ease;
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] label:hover {{
-    background: rgba(255, 248, 235, 0.09);
-    border-left-color: rgba(245, 184, 0, 0.45);
+    background: rgba(28, 22, 17, 0.09);
+    border-left-color: rgba(245, 184, 0, 0.55);
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] label p {{
-    font-size: 0.88rem; margin: 0; color: rgba(246, 239, 229, 0.88);
+    font-size: 0.88rem; margin: 0; color: rgba(28, 22, 17, 0.92);
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {{
-    background: rgba(255, 248, 235, 0.14);
+    background: rgba(255, 224, 207, 0.55);
     border-left-color: var(--abb-jaune);
     padding-left: 14px;
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {{
-    color: #FFFFFF; font-weight: 650;
+    color: #120E0B; font-weight: 650;
 }}
 [data-testid="stSidebar"] div[role="radiogroup"] [data-baseweb="radio"] > div:first-child {{
     display: none;
@@ -406,19 +405,19 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 .state-row {{
     display: flex; align-items: center; justify-content: space-between;
     padding: 6px 10px; border-radius: 9px; margin-bottom: 3px;
-    background: rgba(255, 248, 235, 0.06);
+    background: rgba(28, 22, 17, 0.07);
 }}
-.state-row .sr-lab {{ font-size: 0.79rem; color: rgba(246, 239, 229, 0.82); }}
+.state-row .sr-lab {{ font-size: 0.79rem; color: rgba(28, 22, 17, 0.88); }}
 .state-row .sr-val {{
     font-size: 0.715rem; letter-spacing: .04em; display: flex;
     align-items: center; gap: 7px;
 }}
 .dot {{ width: 7px; height: 7px; border-radius: 50%; display: inline-block; }}
-.dot-on {{ background: #7CD8A2; box-shadow: 0 0 0 3px rgba(124, 216, 162, 0.18); }}
-.dot-off {{ background: transparent; border: 1.5px solid rgba(246, 239, 229, 0.45); }}
-.sr-on {{ color: #A6E6C1; }}
-.sr-off {{ color: rgba(246, 239, 229, 0.52); }}
-.sb-foot {{ font-size: 0.71rem; line-height: 1.55; color: rgba(246, 239, 229, 0.54); padding: 0 2px; }}
+.dot-on {{ background: #0E5C33; box-shadow: 0 0 0 3px rgba(14, 92, 51, 0.20); }}
+.dot-off {{ background: transparent; border: 1.5px solid rgba(28, 22, 17, 0.50); }}
+.sr-on {{ color: #0E5C33; }}
+.sr-off {{ color: rgba(28, 22, 17, 0.58); }}
+.sb-foot {{ font-size: 0.71rem; line-height: 1.55; color: rgba(28, 22, 17, 0.66); padding: 0 2px; }}
 
 /* ----------------------------------------------------------- BOUTONS -- */
 .stButton > button {{
@@ -443,7 +442,7 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 .stButton > button:active {{ transform: translateY(0); }}
 
 .stDownloadButton > button {{
-    background: rgba(255, 252, 246, 0.80);
+    background: var(--creme);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     color: var(--abb-brun);
@@ -455,7 +454,7 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
     transition: background .16s ease, border-color .16s ease;
 }}
 .stDownloadButton > button:hover {{
-    background: rgba(255, 253, 249, 0.95);
+    background: #FFF1E7;
     border-color: var(--abb-jaune); color: var(--abb-brun);
 }}
 .stDownloadButton > button:focus {{
@@ -467,12 +466,12 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 [data-testid="stWidgetLabel"] label, [data-testid="stWidgetLabel"] p {{
     font-size: 0.855rem; font-weight: 550; color: var(--abb-brun) !important;
 }}
-[data-testid="stSidebar"] label p {{ color: #F6EFE5 !important; }}
+[data-testid="stSidebar"] label p {{ color: #1C1611 !important; }}
 
 [data-testid="stMain"] [data-baseweb="select"] > div,
 [data-testid="stMain"] input, .main [data-baseweb="select"] > div, .main input {{
-    background: rgba(255, 252, 246, 0.86);
-    border: 1px solid rgba(58, 47, 41, 0.22);
+    background: var(--creme);
+    border: 1px solid rgba(173, 122, 79, 0.42);
     border-radius: 10px;
     color: var(--abb-txt);
 }}
@@ -491,12 +490,12 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 [data-baseweb="tag"] span, [data-baseweb="tag"] svg {{ color: {BRUN} !important; fill: {BRUN} !important; }}
 
 [data-testid="stFileUploaderDropzone"] {{
-    background: rgba(255, 252, 246, 0.78);
-    border: 1.5px dashed rgba(58, 47, 41, 0.30);
+    background: var(--creme);
+    border: 1.5px dashed rgba(173, 122, 79, 0.50);
     border-radius: 14px;
 }}
 [data-testid="stFileUploaderDropzone"]:hover {{
-    border-color: var(--abb-jaune); background: rgba(255, 253, 249, 0.90);
+    border-color: var(--abb-jaune); background: #FFF1E7;
 }}
 [data-testid="stExpander"] {{
     background: var(--verre);
@@ -511,15 +510,15 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
 [data-testid="stExpander"] summary:hover {{ color: #8A6B00; }}
 
 [data-testid="stMain"] div[role="radiogroup"] label, .main div[role="radiogroup"] label {{
-    background: rgba(255, 252, 246, 0.66);
-    border: 1px solid rgba(58, 47, 41, 0.18);
+    background: var(--creme);
+    border: 1px solid rgba(173, 122, 79, 0.38);
     border-radius: 10px;
     padding: 6px 13px;
     margin-right: 7px;
     transition: border-color .15s ease, background .15s ease;
 }}
 [data-testid="stMain"] div[role="radiogroup"] label:hover {{
-    border-color: rgba(245, 184, 0, 0.60); background: rgba(255, 253, 249, 0.86);
+    border-color: rgba(245, 184, 0, 0.60); background: #FFF1E7;
 }}
 [data-testid="stMain"] div[role="radiogroup"] label:has(input:checked) {{
     border-color: var(--abb-jaune); background: {JAUNE_CLAIR};
@@ -549,7 +548,7 @@ hr {{ border-color: rgba(58, 47, 41, 0.20); }}
     gap: 5px; background: transparent; border-bottom: 1px solid rgba(58, 47, 41, 0.18);
 }}
 [data-testid="stMain"] [data-baseweb="tab"] {{
-    background: rgba(255, 252, 246, 0.55);
+    background: rgba(251, 224, 207, 0.62);
     border-radius: 11px 11px 0 0;
     padding: 9px 17px;
     font-size: 0.885rem; font-weight: 550;
@@ -661,9 +660,9 @@ PLOTLY_LAYOUT = dict(
     yaxis=dict(gridcolor="rgba(58,47,41,0.16)", zerolinecolor="rgba(58,47,41,0.26)",
                linecolor="rgba(58,47,41,0.30)", tickfont=dict(size=11, color="#4A3C31"),
                title=dict(font=dict(size=11.5, color="#4A3C31"))),
-    legend=dict(bgcolor="rgba(250,243,232,0.78)", bordercolor="rgba(58,47,41,0.20)",
+    legend=dict(bgcolor="rgba(251,224,207,0.92)", bordercolor="rgba(173,122,79,0.40)",
                 borderwidth=1, font=dict(size=11, color=TXT)),
-    hoverlabel=dict(bgcolor="rgba(252,247,238,0.97)", bordercolor=JAUNE,
+    hoverlabel=dict(bgcolor="#FBE0CF", bordercolor=JAUNE,
                     font=dict(color=TXT, size=11.5, family="Inter, Arial")),
 )
 
@@ -927,9 +926,9 @@ def suggestion_pour(nom_lisible):
 # ============================================================================
 # 3. BARRE LATÉRALE : IDENTITÉ, NAVIGATION, ÉTAT DE LA CHAÎNE
 # ============================================================================
-PAGES = ["Accueil", "Dashboard", "Données", "Exploration", "Modélisation",
-         "Évaluation", "Scoring", "Portefeuille clients", "Simulateur client",
-         "Recommandations", "À propos"]
+PAGES = ["Accueil", "Données", "Exploration", "Modélisation",
+         "Évaluation", "Scoring", "Dashboard", "Portefeuille clients",
+         "Simulateur client", "Recommandations", "À propos"]
 
 with st.sidebar:
     st.markdown(
@@ -1507,8 +1506,8 @@ elif page == "Évaluation":
                        xaxis=dict(title=dict(text="1 − spécificité")),
                        yaxis=dict(title=dict(text="Sensibilité")),
                        legend=dict(x=0.40, y=0.06,
-                                   bgcolor="rgba(250,243,232,0.86)",
-                                   bordercolor="rgba(58,47,41,0.20)",
+                                   bgcolor="rgba(251,224,207,0.94)",
+                                   bordercolor="rgba(173,122,79,0.40)",
                                    borderwidth=1, font=dict(size=11, color=TXT)))
 
     c1, c2 = st.columns([1.35, 1])
