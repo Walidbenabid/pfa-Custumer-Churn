@@ -11,9 +11,17 @@
 #  personnalisées → limites du modèle.
 #
 #  v3 : refonte visuelle complète (glassmorphism institutionnel, charte
-#  Al Barid Bank, suppression des emojis). La logique statistique,
-#  économétrique et Machine Learning est STRICTEMENT identique à la v2 :
-#  mêmes formules, mêmes seuils, mêmes hyperparamètres, mêmes résultats.
+#  Al Barid Bank, suppression des emojis).
+#  v4 : alignement strict sur le rapport final (Annexe A.1) :
+#    - spécification du chapitre 7 construite APRÈS la partition :
+#      prod_grp (1 / 2 / 3+), compte_actif (= bbm), âge centré sur la
+#      moyenne de l'apprentissage et son carré ; réappliquée telle quelle
+#      à la validation, au test, au scoring et au simulateur ;
+#    - id_client, reclamation_signalee (fuite) et solde_moyen (redondant
+#      avec ln_solde) exclus par défaut à l'import ;
+#    - KS calculé sur le TEST ; choix du modèle arbitré sur la VALIDATION ;
+#    - libellés et recommandations conformes au rapport (bbm = compte actif).
+#  Avec client_churn.csv, l'application reproduit les chiffres du rapport.
 #
 #  Auteur : Walid BEN ABID — FST Errachidia (IFA)
 # ============================================================================
@@ -781,13 +789,62 @@ VARS_FR = {
     "age": "Âge", "anciennete": "Ancienneté (mois)",
     "nb_produits": "Nombre de produits", "solde_moyen": "Solde moyen (DH)",
     "ln_solde": "ln(Solde moyen)", "nb_transactions": "Transactions (6 mois)",
-    "bbm": "Usage Barid Bank Mobile", "salaire_dom": "Salaire domicilié",
+    "bbm": "Compte actif (bbm)", "usage_bbm": "Usage Barid Bank Mobile",
+    "salaire_dom": "Salaire domicilié",
     "credit": "Crédit en cours", "reclamations": "Réclamations (12 mois)",
     "churn": "Churn (cible)",
+    # jeu de données du rapport (client_churn.csv) et variables construites
+    "id_client": "Identifiant client", "score_credit": "Score de crédit",
+    "pays": "Pays", "sexe": "Sexe", "carte_bancaire": "Carte bancaire",
+    "salaire_estime": "Salaire estimé", "satisfaction_score": "Satisfaction (1-5)",
+    "type_carte": "Type de carte", "points_fidelite": "Points de fidélité",
+    "reclamation_signalee": "Réclamation signalée (exclue : fuite)",
+    "compte_actif": "Compte actif", "prod_grp": "Nombre de produits",
+    "age_c": "Âge centré", "age_c2": "Âge centré au carré",
 }
 FEATURES_DEFAUT = ["age", "anciennete", "nb_produits", "ln_solde",
-                   "nb_transactions", "bbm", "salaire_dom", "credit",
+                   "nb_transactions", "usage_bbm", "salaire_dom", "credit",
                    "reclamations"]
+
+# ----------------------------------------------------------------------------
+# Spécification retenue au chapitre 7 du rapport (Annexe A.1)
+# ----------------------------------------------------------------------------
+SPEC_SOURCE = ["age", "nb_produits", "ln_solde", "bbm", "pays", "sexe"]
+SPEC_NUM = ["age_c", "age_c2", "ln_solde", "compte_actif"]
+SPEC_CAT = ["prod_grp", "pays", "sexe"]
+EXCLUS_PAR_DEFAUT = ["reclamation_signalee", "solde_moyen"]
+
+
+def spec_rapport_disponible(df) -> bool:
+    return all(c in df.columns for c in SPEC_SOURCE)
+
+
+def appliquer_spec_rapport(X: pd.DataFrame, age_moy: float) -> pd.DataFrame:
+    """Construit les variables du chapitre 7 à partir des colonnes brutes.
+
+    age_moy est TOUJOURS la moyenne calculée sur l'échantillon
+    d'apprentissage : elle est appliquée telle quelle à tout autre
+    échantillon (validation, test, portefeuille, client simulé)."""
+    age = pd.to_numeric(X["age"], errors="coerce")
+    nb = pd.to_numeric(X["nb_produits"], errors="coerce")
+    out = pd.DataFrame(index=X.index)
+    out["age_c"] = age - age_moy
+    out["age_c2"] = out["age_c"] ** 2
+    out["ln_solde"] = pd.to_numeric(X["ln_solde"], errors="coerce")
+    out["compte_actif"] = pd.to_numeric(X["bbm"], errors="coerce")
+    out["prod_grp"] = nb.map(lambda k: np.nan if pd.isna(k) else
+                             ("1" if k <= 1 else "2" if k == 2 else "3+")
+                             ).astype(object)
+    out["pays"] = X["pays"].astype(object)
+    out["sexe"] = X["sexe"].astype(object)
+    return out[SPEC_NUM + SPEC_CAT]
+
+
+def preparer(X_source: pd.DataFrame, M: dict) -> pd.DataFrame:
+    """Passe des colonnes brutes aux variables du modèle entraîné."""
+    if M.get("age_moy") is not None:
+        return appliquer_spec_rapport(X_source, M["age_moy"])
+    return X_source[M["feats"]]
 
 
 def lab(col):
@@ -806,8 +863,8 @@ def lab_colonne_encodee(col, cat_cols):
 
 @st.cache_data(show_spinner=False)
 def simuler_donnees(n: int, graine: int) -> pd.DataFrame:
-    """Générateur identique à celui du rapport (n=4000, graine=42 -> chiffres
-    du mémoire reproduits à l'identique)."""
+    """Portefeuille SIMULÉ de démonstration. Les résultats du rapport
+    s'obtiennent en important client_churn.csv (mode Import CSV)."""
     rng = np.random.default_rng(graine)
     age = np.clip(rng.normal(40, 13, n), 18, 78).round(0)
     anciennete = np.clip(rng.exponential(48, n), 1, 200).round(0)
@@ -828,7 +885,7 @@ def simuler_donnees(n: int, graine: int) -> pd.DataFrame:
         "age": age.astype(int), "anciennete": anciennete.astype(int),
         "nb_produits": nb_produits, "solde_moyen": solde.astype(int),
         "ln_solde": np.log1p(solde), "nb_transactions": nb_trans,
-        "bbm": bbm, "salaire_dom": sal, "credit": cred,
+        "usage_bbm": bbm, "salaire_dom": sal, "credit": cred,
         "reclamations": recl, "churn": churn})
 
 
@@ -898,20 +955,29 @@ def contributions_client(x_row_enc, logit_sm, moyennes_train, cat_cols, top_n=4)
     contrib = (beta * ecarts).sort_values(key=lambda s: s.abs(), ascending=False)
     out = []
     for col, val in contrib.head(top_n).items():
-        out.append((lab_colonne_encodee(col, cat_cols), float(val)))
+        nom = lab_colonne_encodee(col, cat_cols)
+        # indicatrice à 0 pour ce client : il NE possède PAS la modalité
+        if " = " in nom and float(x_row_enc[col]) == 0:
+            nom = nom.replace(" = ", " ≠ ")
+        out.append((nom, float(val)))
     return out
 
 
 SUGGESTIONS_FACTEUR = {
-    "reclamations": "traiter en priorité ses réclamations récentes",
-    "bbm": "l'accompagner dans l'activation de Barid Bank Mobile",
-    "nb_produits": "lui proposer un produit complémentaire adapté",
-    "anciennete": "renforcer le contact durant cette phase encore récente",
-    "salaire": "l'inciter à domicilier son salaire ou sa pension",
-    "credit": "explorer une offre de crédit adaptée",
+    "= 3+": "surveillance spécifique : le multi-équipement (3 produits et "
+            "plus) est associé à un risque élevé",
+    "compte actif": "relancer l'activité du compte (contact, usages du quotidien)",
+    "produit": "viser la détention de deux produits, niveau associé au "
+               "risque le plus faible",
+    "réclamation": "traiter en priorité ses réclamations récentes",
+    "barid bank mobile": "l'accompagner dans l'activation de Barid Bank Mobile",
+    "ancienn": "renforcer le contact durant cette phase encore récente",
+    "domicili": "l'inciter à domicilier son salaire ou sa pension",
+    "crédit en cours": "explorer une offre de crédit adaptée",
     "solde": "revoir l'adéquation de son package à son niveau d'encours",
     "transaction": "encourager une utilisation plus régulière du compte",
-    "age": "adapter le discours commercial à sa tranche d'âge",
+    "âge": "entretien de situation adapté à sa tranche d'âge",
+    "pays": "adapter l'approche commerciale au marché de rattachement",
 }
 
 
@@ -1014,7 +1080,7 @@ if page == "Accueil":
     st.markdown("### Chaîne de traitement")
     cols = st.columns(5)
     etapes = [
-        ("Étape 1", "Données", "Simulez un portefeuille ou importez votre CSV réel."),
+        ("Étape 1", "Données", "Importez client_churn.csv ou simulez un portefeuille."),
         ("Étape 2", "Modélisation", "Pipeline scikit-learn, split train/validation/test, CV."),
         ("Étape 3", "Évaluation", "ROC, calibration, seuil métier vs seuil statistique."),
         ("Étape 4", "Scoring", "Score de fidélité 300-900 et 4 classes de risque."),
@@ -1029,11 +1095,12 @@ if page == "Accueil":
 
     st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
     st.markdown("### Repères issus du mémoire")
-    st.caption("Base de référence : portefeuille de 4 000 clients")
-    render_kpi_row([("13,9 %", "Taux d'attrition observé"),
-                    ("0,805", "AUC — régression logistique"),
-                    ("85,5 %", "Churners détectés (rappel)"),
-                    ("× 2,04", "Cote de churn par réclamation")])
+    st.caption("Base de référence : client_churn.csv — 4 000 clients "
+               "(échantillon de test, n = 800)")
+    render_kpi_row([("21,2 %", "Taux d'attrition observé"),
+                    ("0,852", "AUC test — régression logistique"),
+                    ("74,0 %", "Churners détectés (rappel, test)"),
+                    ("46 %", "des départs dans 13 % du portefeuille")])
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
     render_insight("Cette édition applique une discipline de validation "
                    "<b>train / validation / test</b> stricte, des "
@@ -1088,10 +1155,16 @@ elif page == "Dashboard":
         apply_plotly_theme(fig, title="Taux de churn observé par classe",
                            yaxis=dict(title=dict(text="Taux de churn (%)")))
         st.plotly_chart(fig, width="stretch")
-    render_insight("Le tableau de bord se met à jour automatiquement à chaque "
-                   "nouveau calcul du scoring — c'est la vue destinée à un "
-                   "comité de pilotage ou à un directeur d'agence, sans détail "
-                   "technique.")
+    haut = scored["classe_risque"].isin(["Élevé", "Critique"])
+    n_churn = int(scored[cible].sum())
+    capt = int(scored.loc[haut, cible].sum())
+    ent = lambda v: f"{int(v):,}".replace(",", "\u202f")
+    render_insight(f"Sur les {ent(n)} clients, <b>{ent(haut.sum())} "
+                   f"({fr(haut.mean())})</b> relèvent d'un risque élevé ou "
+                   f"critique. Ce périmètre regroupe <b>{ent(capt)} des "
+                   f"{ent(n_churn)} churners</b>, soit "
+                   f"{fr(capt / max(n_churn, 1), 0)} des départs pour "
+                   f"{fr(haut.mean(), 0)} des clients contactés.")
 
 # ============================================================================
 # 6. PAGE DONNÉES
@@ -1115,8 +1188,9 @@ elif page == "Données":
             st.session_state["features"] = FEATURES_DEFAUT.copy()
             for k in ("modeles", "scores"):
                 st.session_state.pop(k, None)
-            st.success("Portefeuille généré (n = 4 000, graine = 42 reproduit "
-                       "exactement les chiffres du mémoire).")
+            st.success("Portefeuille de démonstration généré (données "
+                       "simulées). Les chiffres du rapport s'obtiennent en "
+                       "important client_churn.csv.")
     else:
         render_glass_card(
             "Le fichier doit contenir une colonne cible binaire (0/1) et des "
@@ -1134,8 +1208,27 @@ elif page == "Données":
                                      "1 = churner)", colonnes,
                                      index=colonnes.index(cible_defaut))
                 candidates = [c for c in colonnes if c != cible]
+                # exclusions par défaut : identifiant, fuite de données
+                # (|r| > 0,9 avec la cible), redondance solde / ln(solde)
+                y_num = pd.to_numeric(brut[cible], errors="coerce")
+                exclus = {}
+                id_c = colonne_id(brut)
+                if id_c in candidates:
+                    exclus[id_c] = "identifiant"
+                for c in candidates:
+                    if pd.api.types.is_numeric_dtype(brut[c]) and c not in exclus:
+                        r = brut[c].corr(y_num)
+                        if pd.notna(r) and abs(r) > 0.9:
+                            exclus[c] = f"fuite de données suspectée (r = {r:.3f})"
+                if "solde_moyen" in candidates and "ln_solde" in candidates:
+                    exclus.setdefault("solde_moyen", "redondant avec ln_solde")
+                if exclus:
+                    st.info("Exclues par défaut : " + " ; ".join(
+                        f"<b>{c}</b> ({m})" for c, m in exclus.items())
+                        .replace("<b>", "").replace("</b>", ""))
                 feats = st.multiselect("Variables explicatives", candidates,
-                                       default=candidates)
+                                       default=[c for c in candidates
+                                                if c not in exclus])
                 if st.button("Valider ce jeu de données"):
                     y_brut = pd.to_numeric(brut[cible], errors="coerce")
                     valides = y_brut.isin([0, 1])
@@ -1175,9 +1268,13 @@ elif page == "Données":
                         (fr(df[cible].mean()), "Taux d'attrition")])
         st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
         st.dataframe(df.head(10), width="stretch")
-        with st.expander("Dictionnaire des variables (base simulée)"):
-            st.table(pd.DataFrame([(k, v) for k, v in VARS_FR.items()],
+        with st.expander("Dictionnaire des variables"):
+            st.table(pd.DataFrame([(k, lab(k)) for k in df.columns],
                                   columns=["Champ", "Description"]))
+            if "bbm" in df.columns:
+                st.caption("bbm : compte présentant une activité régulière "
+                           "(nom hérité du fichier source) ; ne pas "
+                           "l'interpréter comme un usage de Barid Bank Mobile.")
         st.download_button("Télécharger le jeu de données (CSV)",
                            df.to_csv(index=False).encode("utf-8"),
                            "portefeuille_churn.csv", "text/csv")
@@ -1287,9 +1384,25 @@ elif page == "Modélisation":
     df = st.session_state["data"]
     cible = st.session_state["target"]
 
+    spec_ok = spec_rapport_disponible(df)
+    choix_spec = st.radio(
+        "Spécification du modèle",
+        (["Spécification du rapport (chapitre 7)"] if spec_ok else [])
+        + ["Variables brutes (sélection libre)"], horizontal=True,
+        help="Spécification du rapport : âge centré + âge centré², nombre de "
+             "produits en 3 classes (1 / 2 / 3+), ln(solde), compte actif, "
+             "pays, sexe. Le centrage utilise la moyenne d'âge de "
+             "l'apprentissage seul.")
+    spec_rapport = choix_spec.startswith("Spécification du rapport")
+
     c1, c2, c3 = st.columns([1.5, 1, 1])
-    feats = c1.multiselect("Variables du modèle", st.session_state["features"],
-                           default=st.session_state["features"], format_func=lab)
+    if spec_rapport:
+        feats = SPEC_SOURCE.copy()
+        c1.caption("Variables sources : " + ", ".join(lab(f) for f in feats))
+    else:
+        feats = c1.multiselect("Variables du modèle", st.session_state["features"],
+                               default=st.session_state["features"],
+                               format_func=lab)
     standardiser = c2.checkbox("Standardiser les variables numériques", value=False,
                                help="Sans effet sur l'AUC du logit non pénalisé ; "
                                "modifie l'échelle des odds ratios si activé.")
@@ -1323,6 +1436,17 @@ elif page == "Modélisation":
         X_tr, X_val, y_tr, y_val = train_test_split(
             X_tv, y_tv, test_size=part_val_rel, random_state=int(graine),
             stratify=y_tv)
+
+        # ---------------- spécification du chapitre 7 (APRÈS la partition) --
+        age_moy = None
+        feats_source = feats
+        if spec_rapport:
+            age_moy = float(pd.to_numeric(X_tr["age"], errors="coerce").mean())
+            X_tr = appliquer_spec_rapport(X_tr, age_moy)
+            X_val = appliquer_spec_rapport(X_val, age_moy)
+            X_te = appliquer_spec_rapport(X_te, age_moy)
+            num_cols, cat_cols = SPEC_NUM.copy(), SPEC_CAT.copy()
+            feats = SPEC_NUM + SPEC_CAT
 
         # ---------------- Pipelines scikit-learn (prétraitement + modèle) -----
         pre_template = construire_preprocesseur(num_cols, cat_cols, standardiser)
@@ -1388,6 +1512,7 @@ elif page == "Modélisation":
             "pipe_logit": pipe_logit, "pipe_arbre": pipe_arbre,
             "pipe_foret": pipe_foret, "pre_fit": pre_fit, "logit_sm": logit_sm,
             "num_cols": num_cols, "cat_cols": cat_cols, "feats": feats,
+            "feats_source": feats_source, "age_moy": age_moy,
             "X_tr": X_tr, "X_val": X_val, "X_te": X_te,
             "y_tr": y_tr, "y_val": y_val, "y_te": y_te,
             "moyennes_train": Xtr_enc.mean(),
@@ -1395,7 +1520,9 @@ elif page == "Modélisation":
         st.session_state.pop("scores", None)
         st.success(f"Modèles entraînés — {len(X_tr)} en apprentissage, "
                    f"{len(X_val)} en validation, {len(X_te)} en test (partitions "
-                   f"stratifiées et indépendantes).")
+                   f"stratifiées et indépendantes)."
+                   + (f" Âge moyen d'apprentissage utilisé pour le centrage : "
+                      f"{age_moy:.2f} ans." if age_moy is not None else ""))
         if note:
             st.warning(note)
 
@@ -1408,13 +1535,18 @@ elif page == "Modélisation":
                               for nom, (m, s) in M["cv_res"].items()}).T
         st.dataframe(cv_df.style.format("{:.3f}"), width="stretch")
         ecarts_cv = cv_df["Écart-type"].max()
+        etendue = cv_df["AUC moyen"].max() - cv_df["AUC moyen"].min()
         render_insight(f"L'écart-type maximal entre plis est de "
                        f"<b>{num_fr(ecarts_cv)}</b> — "
-                       + ("un résultat stable : la performance ne dépend pas "
-                          "d'un découpage particulier du train/test."
-                          if ecarts_cv < 0.03 else
+                       + ("la performance ne dépend pas d'un découpage "
+                          "particulier de l'échantillon d'apprentissage."
+                          if ecarts_cv < 0.05 else
                           "une variabilité notable d'un pli à l'autre : à "
-                          "surveiller si le portefeuille est de petite taille."))
+                          "surveiller si le portefeuille est de petite taille.")
+                       + (" Les écarts entre modèles restent du même ordre que "
+                          "la dispersion entre plis : la validation croisée ne "
+                          "permet pas, à elle seule, de les départager."
+                          if etendue <= 2 * ecarts_cv else ""))
 
         if M["logit_sm"] is not None:
             st.markdown("---")
@@ -1433,7 +1565,8 @@ elif page == "Modélisation":
                      if isinstance(v, float) and v < 0.05 else "",
                      subset=["p-value"]), width="stretch")
             st.caption(f"Pseudo-R² de McFadden : {res.prsquared:.3f} · "
-                       f"log-vraisemblance : {res.llf:.1f} · "
+                       f"log-vraisemblance : {res.llf:.1f} · test LR : "
+                       f"{res.llr:.1f} ({int(res.df_model)} ddl) · "
                        f"{int(res.nobs)} observations d'apprentissage.")
             orr = np.exp(res.params.drop("const")).sort_values()
             fig = go.Figure(go.Bar(
@@ -1523,26 +1656,40 @@ elif page == "Évaluation":
             vn, fp, fn, vp = cm_.ravel()
             fpr_t, tpr_t, _ = roc_curve(y_te, p_hat)
             lignes_tab.append({
-                "Modèle": nom, "AUC": auc(fpr_t, tpr_t),
+                "Modèle": nom, "AUC val.": auc(fpr, tpr),
+                "AUC": auc(fpr_t, tpr_t),
                 "Rappel": recall_score(y_te, yp, zero_division=0),
                 "Précision": precision_score(y_te, yp, zero_division=0),
                 "F1": f1_score(y_te, yp, zero_division=0),
-                "KS": float((tpr - fpr).max()),
+                "KS": float((tpr_t - fpr_t).max()),      # KS sur le TEST
                 "Interprétabilité": {"Régression logistique": "Élevée",
                                      "Arbre de décision": "Moyenne",
                                      "Forêt aléatoire": "Faible"}[nom]})
-        comp = pd.DataFrame(lignes_tab).sort_values("AUC", ascending=False)
+        # le choix du modèle est arbitré sur la VALIDATION, jamais sur le test
+        comp = pd.DataFrame(lignes_tab).sort_values("AUC val.", ascending=False)
         st.dataframe(comp.set_index("Modèle").style.format(
-            {"AUC": "{:.3f}", "Rappel": "{:.3f}", "Précision": "{:.3f}",
-             "F1": "{:.3f}", "KS": "{:.3f}"}).highlight_max(
-            subset=["AUC"], color=JAUNE_CLAIR), width="stretch")
-        meilleur = comp.iloc[0]
-        render_insight(f"<b>{meilleur['Modèle']}</b> obtient le meilleur AUC "
-                       f"({num_fr(meilleur['AUC'])}) tout en offrant une "
-                       f"interprétabilité <b>{meilleur['Interprétabilité'].lower()}</b> "
-                       f"— c'est la combinaison performance + auditabilité qui "
-                       f"justifie son choix comme modèle de production, plutôt "
-                       f"que l'AUC seul.")
+            {"AUC val.": "{:.3f}", "AUC": "{:.3f}", "Rappel": "{:.3f}",
+             "Précision": "{:.3f}", "F1": "{:.3f}", "KS": "{:.3f}"}
+            ).highlight_max(subset=["AUC val."], color=JAUNE_CLAIR),
+            width="stretch")
+        st.caption("AUC val. : validation (sert au choix du modèle). Autres "
+                   "colonnes : test, au seuil de Youden issu de la validation.")
+        auc_val = comp.set_index("Modèle")["AUC val."]
+        ecart_rl = auc_val.max() - auc_val["Régression logistique"]
+        if ecart_rl <= 0.01:
+            texte_choix = (f"Sur la validation, la régression logistique "
+                           f"({num_fr(auc_val['Régression logistique'])}) est "
+                           f"au niveau du meilleur modèle (écart ≤ 0,01) : à "
+                           f"performance équivalente, elle est <b>retenue</b> "
+                           f"pour son interprétabilité (odds ratios, règle de "
+                           f"décision transparente, probabilités exploitables "
+                           f"pour le scoring).")
+        else:
+            texte_choix = (f"Sur la validation, <b>{auc_val.idxmax()}</b> dépasse "
+                           f"la régression logistique de {num_fr(ecart_rl)} "
+                           f"point d'AUC : le choix doit arbitrer entre ce gain "
+                           f"et la perte d'interprétabilité.")
+        render_insight(texte_choix)
 
     # ---------------------------------------------- seuil (validation only) --
     st.markdown("---")
@@ -1669,7 +1816,7 @@ elif page == "Scoring":
     cible = st.session_state["target"]
     M = st.session_state["modeles"]
 
-    X_all = df[M["feats"]]
+    X_all = preparer(df[M["feats_source"]], M)
     Xall_enc = transformer_en_df(M["pre_fit"], X_all)   # transform seul, jamais fit
     if M["logit_sm"] is not None:
         p_all = np.asarray(M["logit_sm"].predict(
@@ -1736,12 +1883,32 @@ elif page == "Scoring":
                    * len(r), axis=1), width="stretch")
     with c2:
         mono = grille["Taux de churn observé"].dropna().is_monotonic_increasing
+        render_insight("Grille appliquée à l'<b>ensemble</b> du portefeuille "
+                       "(clients d'apprentissage inclus) : description servant "
+                       "au dimensionnement des campagnes, pas une validation "
+                       "indépendante.", label="Lecture")
         render_insight("Le taux de churn observé " +
                        ("<b>croît strictement</b> d'une classe à l'autre : le "
                         "score discrimine réellement le risque réel."
                         if mono else
                         "n'est pas parfaitement monotone : vérifiez la taille "
                         "des classes extrêmes."))
+    st.markdown("**Validation de la grille sur l'échantillon de test**")
+    st.caption(f"n = {len(M['X_te'])} — clients jamais utilisés pour "
+               f"l'estimation ni pour le choix du seuil")
+    sc_te = scored.loc[M["X_te"].index]
+    grille_te = (sc_te.groupby("classe_risque")
+                 .agg(Effectif=(cible, "size"), Churn_observe=(cible, "mean"))
+                 .reindex(["Faible", "Modéré", "Élevé", "Critique"]).fillna(0))
+    grille_te["Part"] = grille_te["Effectif"] / len(sc_te)
+    grille_te = grille_te[["Effectif", "Part", "Churn_observe"]]
+    grille_te.columns = ["Effectif", "Part de l'échantillon",
+                         "Taux de churn observé"]
+    st.dataframe(grille_te.style.format(
+        {"Effectif": "{:,.0f}", "Part de l'échantillon": lambda v: fr(v),
+         "Taux de churn observé": lambda v: fr(v)})
+        .apply(lambda r: [f"background-color:{FONDS_CLASSES.get(r.name,'')}"]
+               * len(r), axis=1), width="stretch")
     st.download_button("Télécharger le portefeuille scoré (CSV)",
                        scored.to_csv(index=False).encode("utf-8"),
                        "portefeuille_score.csv", "text/csv")
@@ -1769,7 +1936,7 @@ elif page == "Portefeuille clients":
 
     colonnes_aff = [c for c in [id_col, "score", "classe_risque", "p_churn"]
                     if c and c in filtre.columns] + \
-                   [c for c in st.session_state["modeles"]["feats"]
+                   [c for c in st.session_state["modeles"]["feats_source"]
                     if c in filtre.columns]
     st.dataframe(
         filtre[colonnes_aff].style.format({"p_churn": "{:.1%}"})
@@ -1798,7 +1965,13 @@ elif page == "Simulateur client":
 
     valeurs = {}
     cols = st.columns(3)
-    for i, f in enumerate(M["feats"]):
+    # ln(solde) est saisi via le solde moyen lorsque celui-ci existe
+    saisies = []
+    for f in M["feats_source"]:
+        g = "solde_moyen" if (f == "ln_solde" and "solde_moyen" in df.columns) else f
+        if g not in saisies:
+            saisies.append(g)
+    for i, f in enumerate(saisies):
         c = cols[i % 3]
         s = df[f]
         if pd.api.types.is_numeric_dtype(s):
@@ -1813,18 +1986,19 @@ elif page == "Simulateur client":
                                             step=1.0 if entier else 0.1)
         else:
             valeurs[f] = c.selectbox(lab(f), sorted(s.dropna().astype(str).unique()))
-    if "solde_moyen" in valeurs and "ln_solde" in M["feats"]:
+    if "solde_moyen" in valeurs and "ln_solde" in M["feats_source"]:
         valeurs["ln_solde"] = float(np.log1p(valeurs["solde_moyen"]))
 
     if st.button("Évaluer ce client", width="stretch"):
-        x = pd.DataFrame([valeurs])[M["feats"]]
+        x = preparer(pd.DataFrame([valeurs])[M["feats_source"]], M)
         x_enc = transformer_en_df(M["pre_fit"], x)         # transform seul
         if M["logit_sm"] is not None:
             p = float(np.asarray(M["logit_sm"].predict(
                 sm.add_constant(x_enc, has_constant="add"))).ravel()[0])
         else:
             p = float(M["pipe_logit"].predict_proba(x)[0, 1])
-        sc = float(np.clip(600 + 50 * np.log2((1 - p + 1e-9) / (p + 1e-9)), 300, 900))
+        sc = float(np.round(np.clip(
+            600 + 50 * np.log2((1 - p + 1e-9) / (p + 1e-9)), 300, 900)))
         cl = ("Faible" if sc >= 700 else "Modéré" if sc >= 600
               else "Élevé" if sc >= 500 else "Critique")
 
@@ -1852,14 +2026,19 @@ elif page == "Simulateur client":
                 f"<div class='glass-card solid' style='text-align:center;"
                 f"padding:26px 22px;'>"
                 f"<div style='font-size:0.79rem;color:{MUT};letter-spacing:.05em;"
-                f"text-transform:uppercase;'>Probabilité de churn (6 mois)</div>"
+                f"text-transform:uppercase;'>Probabilité de churn estimée</div>"
                 f"<div style='font-size:2.5rem;font-weight:700;color:{BRUN};"
                 f"line-height:1.2;margin:8px 0 12px 0;'>{fr(p)}</div>"
                 f"{render_badge(cl, 'Risque ')}</div>", unsafe_allow_html=True)
-            actions = {"Faible": "Entretenir la relation via BBM et le parrainage.",
-                       "Modéré": "Proposer un 2ᵉ produit, activer BBM, domicilier le salaire.",
-                       "Élevé": "Contact proactif du conseiller sous 15 jours, geste commercial.",
-                       "Critique": "Traitement prioritaire par le directeur sous 7 jours."}
+            actions = {"Faible": "Entretenir la relation à moindre coût : "
+                                 "communication digitale, parrainage.",
+                       "Modéré": "Campagne d'équipement : proposer un 2ᵉ produit "
+                                 "adapté au client mono-équipé, relancer le "
+                                 "compte s'il est inactif.",
+                       "Élevé": "Contact proactif du chargé de clientèle sous "
+                                "quinzaine, geste commercial ciblé.",
+                       "Critique": "Traitement prioritaire par la direction "
+                                   "d'agence sous 7 jours."}
             render_glass_card(actions[cl], titre="Action recommandée")
 
         if M["logit_sm"] is not None:
@@ -1942,17 +2121,19 @@ elif page == "Recommandations":
 
     plans = {
         "Critique": ("Traitement prioritaire — direction d'agence",
-                     ["Appel du directeur sous 7 jours",
-                      "Résolution accélérée des réclamations ouvertes",
-                      "Offre de rétention sur mesure ; à défaut, entretien de sortie"]),
+                     ["Appel sous 7 jours et diagnostic de la relation",
+                      "Offre de rétention sur mesure",
+                      "À défaut, entretien de sortie documenté pour alimenter "
+                      "le modèle"]),
         "Élevé": ("Contact proactif — chargé de clientèle",
-                  ["Entretien de découverte sous 15 jours", "Geste commercial ciblé",
-                   "Suivi personnalisé inscrit au CRM"]),
-        "Modéré": ("Campagnes d'équipement ciblées",
-                   ["Proposer un 2ᵉ produit adapté", "Activation de Barid Bank Mobile",
-                    "Domiciliation du salaire"]),
+                  ["Entretien de découverte sous quinzaine",
+                   "Geste commercial ciblé", "Suivi inscrit au CRM"]),
+        "Modéré": ("Campagne d'équipement ciblée",
+                   ["Proposer au client mono-équipé un 2ᵉ produit adapté "
+                    "(deux produits : risque le plus faible du portefeuille)",
+                    "Relancer les comptes inactifs"]),
         "Faible": ("Entretenir la relation à moindre coût",
-                   ["Communication digitale via BBM", "Information sur les nouveautés",
+                   ["Communication digitale", "Information sur les nouveautés",
                     "Programme de parrainage"]),
     }
     for cl, (titre, acts) in plans.items():
@@ -1976,7 +2157,7 @@ elif page == "Recommandations":
         n_aff = st.slider("Nombre de clients détaillés", 3,
                           min(30, len(a_contacter)), min(10, len(a_contacter)))
         lignes = []
-        Xc = a_contacter[M["feats"]].head(n_aff)
+        Xc = preparer(a_contacter[M["feats_source"]].head(n_aff), M)
         Xc_enc = transformer_en_df(M["pre_fit"], Xc)
         for idx in range(len(Xc)):
             facteurs = contributions_client(Xc_enc.iloc[idx], M["logit_sm"],
@@ -2026,7 +2207,8 @@ else:
             "<b>Encadrante professionnelle :</b> Mme Nejwa Rachiq.",
             titre="Projet")
         render_glass_card(
-            "1. Définition du churn (fenêtres 12 + 6 mois)<br>"
+            "1. Churn : client ayant quitté la banque (churn actif) ; "
+            "variable de fuite écartée<br>"
             "2. Split <b>train / validation / test</b> stratifié<br>"
             "3. <b>Pipelines scikit-learn</b> (imputation, encodage, échelle) "
             "ajustés sur le train uniquement<br>"
@@ -2039,8 +2221,11 @@ else:
             titre="Chaîne méthodologique")
     with c2:
         render_warning(
-            "• Sur données simulées, les coefficients reflètent le générateur "
-            "choisi, pas une mesure empirique réelle.<br>"
+            "• Le jeu client_churn.csv est un jeu public (banque de détail "
+            "européenne) : seule la démarche est transposable à Al Barid "
+            "Bank, pas les niveaux chiffrés.<br>"
+            "• Données transversales : le modèle dit <i>si</i> un client "
+            "part, pas <i>quand</i>.<br>"
             "• Les odds ratios sont des <b>associations</b>, pas des effets "
             "causaux (pas de test A/B réalisé).<br>"
             "• Aucune validation <b>hors échantillon temporel</b> : la dérive "
