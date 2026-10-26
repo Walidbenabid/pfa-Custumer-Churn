@@ -116,12 +116,12 @@ def load_background_image(nom_fichier: str = FOND_FICHIER) -> str:
     return ""
 
 
-FOND_B64 = load_background_image()
+FOND_B64 = load_background_image(FOND_FICHIER)
 
 if FOND_B64:
     # Voile volontairement léger : il protège la lisibilité des rares textes
     # posés hors carte sans masquer la photographie.
-        _COUCHE_FOND = f"url('data:image/jpeg;base64,{FOND_B64}')"
+    _COUCHE_FOND = f"url('data:image/jpeg;base64,{FOND_B64}')"
 else:
     _COUCHE_FOND = ("linear-gradient(140deg, #AD7A4F 0%, #C89A72 50%, "
                     "#FBE0CF 100%)")
